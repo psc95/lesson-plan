@@ -1,0 +1,129 @@
+
+C:\Users\kimhoon>sqlplus system/123456 						(sql접속 명령문)
+
+다음에 접속됨:
+Oracle Database 21c Express Edition Release 21.0.0.0.0 - Production
+Version 21.3.0.0.0
+
+SQL> create user user01 identified by tiger;					(사용자 생성안된다 세션변경 명령어 안해서)
+create user user01 identified by tiger
+            *
+1행에 오류:
+ORA-65096: 공통 사용자 또는 롤 이름이 부적합합니다.
+
+
+SQL> alter session set "_oracle_script"=true;					(세션변경 명령어)
+
+세션이 변경되었습니다.
+
+SQL> create user user01 identified by tiger;					(user01사용자 생성 명령어)
+
+사용자가 생성되었습니다.
+
+SQL> conn user01								(접속 명령어, 권한 안줘서 접속 안된다.)
+비밀번호 입력:
+ERROR:
+ORA-01045: 사용자 USER01는 CREATE SESSION 권한을 가지고있지 않음; 로그온이
+거절되었습니다
+
+
+경고: 이제는 ORACLE에 연결되어 있지 않습니다.
+SQL> show user									(접속유저 확인 명령어)
+USER은 ""입니다
+
+SQL> conn system/123456								(관리자계정 접속 명령어)
+연결되었습니다.
+
+SQL> grant create session to user01;						(접속 권한부여 명령어)
+
+권한이 부여되었습니다.
+
+SQL> conn user01/tiger								(tiger계정 접속 명령어)
+연결되었습니다.
+SQL> show user;									(접속유저 확인 명령어)
+USER은 "USER01"입니다
+
+SQL> create table emp01(							(생성권한 없어서 생성불가)
+  2  ename varchar2(20));
+create table emp01(
+*
+1행에 오류:
+ORA-01031: 권한이 불충분합니다
+
+SQL> conn system/123456								(관리자계정 접속 명령어)
+연결되었습니다.
+SQL> grant create table  to user01;						(생성 권한부여 명령어)
+
+SQL> conn user01/tiger								(user01계정 접속 명령어)	
+연결되었습니다.
+SQL> create table emp01( ename varchar2(50));					(테이블 생성 명령어)
+
+SQL> conn system/123456								(관리자계정 접속 명령어)
+연결되었습니다.
+
+SQL> alter session set "_oracle_script"=true;					(세션변경 명령어)
+
+세션이 변경되었습니다.
+
+SQL> create user user02 identified by tiger;					(user02사용자 생성 명령어)		
+
+사용자가 생성되었습니다.
+
+SQL> grant create session uo user02 with admin option;				(user02사용자 에게 grant create 권한 부여)
+										(원래 grant create는 user02에서 못하고 system에서 해야하는데
+										권한부여 해서 user02에서도 사용가능하게 된다.)
+
+권한이 부여되었습니다.
+
+SQL> conn user02/tiger								(user02계정 접속 명령어)
+연결되었습니다.
+SQL> grant create session to user01;						(user02 권한을 user01에게 부여)
+
+권한이 부여되었습니다.
+
+SQL> conn system/123456								(관리자계정 접속 명령어)
+연결되었습니다.
+
+SQL> alter session set "_oracle_script"=true;					(세션변경 명령어)
+
+세션이 변경되었습니다.
+
+SQL> create user user03 identified by tiger;					(user03사용자 생성 명령어)			
+
+사용자가 생성되었습니다.
+
+SQL> grant create session to user03;						(user03에 오라클 연결 권한부여)				
+권한이 부여되었습니다.
+
+SQL> conn user03/tiger								(user03 접속 명령어)
+연결되었습니다.
+
+SQL> grant create session to user01;						(user01에 오라클 연결 권한부여가 안된다. 왜냐면 with admin option
+										을 명령어 뒤에 줘야지 일반사용자도 권한부여 가능)
+grant create session to user01
+*
+1행에 오류:
+ORA-01031: 권한이 불충분합니다
+
+SQL> conn night/123456								(관리자계정 접속 명령어)
+연결되었습니다.
+
+SQL> grant select on emp to user01;						(user01테이블에 emp테이블 검색 권한부여)
+권한이 부여되었습니다.
+
+SQL> conn user01/tiger								(user01 접속 명령어)
+연결되었습니다.
+
+SQL> select ename from emp;							(검색안된다 테이블.emp로 명령어를 해야 검색이 된다.)		
+select ename from emp
+                  *
+1행에 오류:
+ORA-00942: 테이블 또는 뷰가 존재하지 않습니다
+
+SQL> select ename from night.emp;						(테이블명.emp 로 해야 검색가능)
+
+ENAME
+--------------------------------------------------------------------------------
+홍길동
+이순신
+강감찬

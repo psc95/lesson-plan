@@ -1,0 +1,559 @@
+C:\Users\user>sqlplus system/123456
+
+SQL> create user user01 identified by tiger; -> 11g는 이렇게해도 계정 만들어짐
+
+SQL> alter session set "_oracle_script"=true; -> 11g말고는 이 코드를 치고 위에 코드를 쳐야 계정생성 가능
+
+--권환이 없어 에러 발생
+SQL> conn user01/tiger;
+ERROR:
+ORA-01045: user USER01 lacks CREATE SESSION privilege; logon denied
+Warning: You are no longer connected to ORACLE.
+
+SQL> conn system/123456 -> 관리자로 로그인
+
+SQL> grant create session to user01;
+Grant succeeded.
+
+SQL> conn user01/tiger
+Connected.
+
+SQL> show user
+USER is "USER01"
+
+--권한 불충분으로 에러 발생
+SQL> create table emp01(
+  2  ename varchar2(20));
+create table emp01(
+*
+ERROR at line 1:
+ORA-01031: insufficient privileges
+
+--관리자 계정으로 로그인
+SQL> conn system/123456
+Connected.
+
+--관리자 계정에서 user01로 권한 부여
+SQL> grant create table to user01;
+Grant succeeded.
+
+SQL> show user
+USER is "SYSTEM"
+
+SQL> conn user01/tiger
+Connected.
+
+SQL> show user
+USER is "USER01"
+
+--11g에서는 에러가 발생해서 grant unlimited tablespace to user01; 이권한을 줘야 테이블생성됨
+SQL> create table emp01( ename varchar2(50));
+create table emp01( ename varchar2(50))
+*
+ERROR at line 1:
+ORA-01950: no privileges on tablespace 'SYSTEM'
+
+
+SQL> conn system/123456
+Connected.
+
+SQL> create user user02 identified by tiger;
+User created.
+
+--오라클 연결권한을 user02에게 줌
+SQL> grant create session to user02 with admin option;
+
+SQL> conn user02/tiger
+Connected.
+
+--with admin option으로 system이 아닌 user02가 user01한테 권한 부여 가능
+SQL> grant create session to user01;
+Grant succeeded.
+
+SQL> conn system/123456
+Connected.
+
+SQL> create user user03 identified by tiger;
+User created.
+
+SQL> grant create session to user03;
+Grant succeeded.
+
+SQL> conn user03/tiger
+Connected.
+
+--권한 불충분으로 에러 발생
+SQL> grant create session to user01;
+grant create session to user01
+*
+ERROR at line 1:
+ORA-01031: insufficient privileges
+
+SQL> conn night/123456
+Connected.
+
+--user01한테 검색 권한 부여
+SQL> grant select on emp to user01;
+Grant succeeded.
+
+SQL> conn user01/tiger
+Connected.
+
+--emp테이블의 소유자가 아니라 에러발생
+SQL> select ename from emp;
+select ename from emp
+                  *
+ERROR at line 1:
+ORA-00942: table or view does not exist
+
+--스키마. 즉 테이블 소유주를 넣어주면 검색 가능
+SQL> select ename from night.emp;
+ENAME
+--------------------------------------------------------------------------------
+홍길동
+강감찬
+이순신
+
+SQL> conn night/123456
+Connected.
+
+SQL> grant select on night.emp to user02 with grant option;
+Grant succeeded.
+
+SQL> conn user02/tiger
+Connected.
+
+--with grant option으로 user02가 user01한테 검색권한 부여 가능
+SQL> grant select on night.emp to user01;
+
+Grant succeeded.
+
+SQL> conn night/123456
+Connected.
+
+SQL> grant select on night.emp to user03;
+Grant succeeded.
+
+--user03이 with grant option을 주지않아서 user01한테 권한을 부여할수 없음
+SQL> conn user03/tiger
+Connected.
+SQL> grant select on night.emp to user01;
+grant select on night.emp to user01
+                      *
+ERROR at line 1:
+ORA-01031: insufficient privileges
+
+SQL> conn system/123456
+Connected.
+
+SQL> create user user04 identified by tiger;
+User created.
+
+--create session 권한없어서 로그인 안됨 
+SQL> conn user04/tiger;
+ERROR:
+ORA-01045: user USER04 lacks CREATE SESSION privilege; logon denied
+Warning: You are no longer connected to ORACLE.
+
+SQL> show user
+USER is ""
+
+SQL> conn system/123456
+Connected.
+
+--에러로 연결끊겨서 다시 관리자로 로그인해서 권한 부여
+SQL> grant connect,resource to user04;
+Grant succeeded.
+
+SQL> conn user04/tiger;
+Connected.
+
+SQL> show user
+USER is "USER04"
+
+--user04에게 주어진 권한 확인하는 명령어
+SQL> select username,granted_role from user_role_privs;
+
+USERNAME
+------------------------------------------------------------
+GRANTED_ROLE
+------------------------------------------------------------
+USER04
+CONNECT
+
+USER04
+RESOURCE
+
+SQL> conn system/123456
+Connected.
+
+--role 생성
+SQL> create role mrole;
+
+--11g말고는 이명령어를 해야 위에 role생성 명령어를 쓸수있음.
+SQL> alter session set "_oracle_script"=true;
+
+SQL> grant create session, create table, create view to mrole;
+Grant succeeded.
+
+SQL> create user user05 identified by tiger;
+User created.
+
+SQL> grant mrole to user05;
+Grant succeeded.
+
+SQL> conn user05/tiger;
+Connected.
+
+SQL> select username,granted_role from user_role_privs;
+
+USERNAME
+------------------------------------------------------------
+GRANTED_ROLE
+------------------------------------------------------------
+USER05
+MROLE
+
+SQL> conn system/123456
+Connected.
+
+SQL> show user
+USER is "SYSTEM"
+
+SQL> create role mrole02;
+Role created.
+
+SQL> conn night/123456
+Connected.
+
+SQL> grant select on emp to mrole02;
+Grant succeeded.
+
+SQL> conn system/123456
+Connected.
+
+SQL> grant mrole02 to user05;
+Grant succeeded.
+
+SQL> conn user05/tiger;
+Connected.
+
+SQL> select username,granted_role from user_role_privs;
+
+USERNAME
+------------------------------------------------------------
+GRANTED_ROLE
+------------------------------------------------------------
+USER05
+MROLE
+
+USER05
+MROLE02
+
+SQL> select ename from night.emp;
+
+ENAME
+--------------------------------------------------------------------------------
+홍길동
+강감찬
+이순신
+
+SQL> conn system/123456
+Connected.
+
+SQL> revoke mrole02 from user05;
+Revoke succeeded.
+
+SQL> conn user05/tiger;
+Connected.
+
+SQL> select username,granted_role from user_role_privs;
+
+USERNAME
+------------------------------------------------------------
+GRANTED_ROLE
+------------------------------------------------------------
+USER05
+MROLE
+
+SQL> conn system/123456
+Connected.
+
+SQL> select username,granted_role from user_role_privs;
+
+USERNAME
+------------------------------------------------------------
+GRANTED_ROLE
+------------------------------------------------------------
+SYSTEM
+AQ_ADMINISTRATOR_ROLE
+
+SYSTEM
+DBA
+
+SYSTEM
+MROLE
+
+
+USERNAME
+------------------------------------------------------------
+GRANTED_ROLE
+------------------------------------------------------------
+SYSTEM
+MROLE02
+
+--완전히 role삭제하는 법
+SQL> drop role mrole02;
+Role dropped.
+
+SQL> select username,granted_role from user_role_privs;
+
+USERNAME
+------------------------------------------------------------
+GRANTED_ROLE
+------------------------------------------------------------
+SYSTEM
+AQ_ADMINISTRATOR_ROLE
+
+SYSTEM
+DBA
+
+SYSTEM
+MROLE
+
+SQL> show user
+USER is "SYSTEM"
+
+SQL> create table sysTBL( ename varchar2(50));
+Table created.
+
+SQL> insert into sysTBL values('홍길동');
+1 row created.
+
+SQL> insert into sysTBL values('신사임당');
+1 row created.
+
+SQL> commit;
+Commit complete.
+
+--검색 권한 부여
+SQL> grant select on systbl to night;
+Grant succeeded.
+
+SQL> conn night/123456
+Connected.
+
+SQL> select ename from systbl;
+select ename from systbl
+                  *
+ERROR at line 1:
+ORA-00942: table or view does not exist
+
+SQL> select ename from system.systbl;
+
+ENAME
+--------------------------------------------------------------------------------
+홍길동
+신사임당
+
+--권한 불충분으로 인한 에러 발생
+SQL> create synonym prisysTBL for system.TBL;
+create synonym prisysTBL for system.TBL
+*
+ERROR at line 1:
+ORA-01031: insufficient privileges
+
+SQL> show user
+USER is "NIGHT"
+
+SQL> conn system/123456
+Connected.
+
+--night 계정에 synonym 권한 부여
+SQL> grant create synonym to night;
+Grant succeeded.
+
+SQL> conn night/123456
+Connected.
+
+SQL> create synonym prisysTBL for system.syscoTBL;
+Synonym created.
+
+SQL> select * from prisystbl;
+
+ENAME
+--------------------------------------------------------------------------------
+홍길동
+신사임당
+
+SQL> conn system/123456
+Connected.
+
+SQL> create role test_role;
+Role created.
+
+SQL> grant connect,resource,create synonym to test_role;
+Grant succeeded.
+
+SQL> grant select on night.dept to test_role;
+Grant succeeded.
+
+SQL> create user userb1 identified by b1234;
+User created.
+
+SQL> create user userb2 identified by b1234;
+User created.
+
+SQL> grant test_role to userb1;
+Grant succeeded.
+
+SQL> grant test_role to userb2;
+Grant succeeded.
+
+SQL> conn userb1/b1234;
+Connected.
+
+SQL> select dname from night.dept;
+
+DNAME
+--------------------------------------------------------------------------------
+경리부
+영업부
+관리부
+연구부
+
+SQL> conn userb2/b1234;
+Connected.
+
+SQL> select dname from night.dept;
+
+DNAME
+--------------------------------------------------------------------------------
+경리부
+영업부
+관리부
+연구부
+
+SQL> conn userb1/b1234
+Connected.
+
+--비공개동의어 생성
+SQL> create synonym dept for night.dept;
+Synonym created.
+
+SQL> select dname from dept;
+
+DNAME
+--------------------------------------------------------------------------------
+경리부
+영업부
+관리부
+연구부
+
+SQL> conn userb2/b1234;
+Connected.
+
+--userb2로는 동의어를 생성하지 않았기 때문에 검색되지 않는다.
+SQL> select dname from dept;
+select dname from dept
+                  *
+ERROR at line 1:
+ORA-00942: table or view does not exist
+
+SQL> conn system/123456
+Connected.
+
+--공개 동의어 생성
+SQL> create public synonym pubdept for night.dept;
+Synonym created.
+
+SQL> conn userb1/b1234
+Connected.
+
+SQL> select dname from pubdept;
+
+DNAME
+--------------------------------------------------------------------------------
+경리부
+영업부
+관리부
+연구부
+
+--공개 동의어로 만들어서 아무 계정으로도 검색 가능함.
+SQL> conn userb2/b1234
+Connected.
+
+SQL> select dname from pubdept;
+
+DNAME
+--------------------------------------------------------------------------------
+경리부
+영업부
+관리부
+연구부
+
+SQL> conn userb2/b1234
+Connected.
+
+--userb1 에서 만들거라 userb2에서 지울수가 없음.
+SQL> drop synonym dept;
+drop synonym dept
+             *
+ERROR at line 1:
+ORA-01434: private synonym to be dropped does not exist
+
+--같은이유로 관리자 계정에서도 삭제 불가
+SQL> conn system/123456
+Connected.
+
+SQL> drop synonym dept;
+drop synonym dept
+             *
+ERROR at line 1:
+ORA-01434: private synonym to be dropped does not exist
+
+--공개 동의어는 관리자 권한을 가진 계정으로 삭제해야 삭제가 됨.
+SQL> conn userb1/b1234
+Connected.
+
+SQL> show user
+USER is "USERB1"
+
+SQL> drop synonym pubdept;
+drop synonym pubdept
+             *
+ERROR at line 1:
+ORA-01434: private synonym to be dropped does not exist
+
+SQL> conn system/123456
+Connected.
+
+SQL> drop synonym pubdept;
+drop synonym pubdept
+             *
+ERROR at line 1:
+ORA-01434: private synonym to be dropped does not exist
+
+--공개 동의어는 public을 붙여야 삭제가됨.
+SQL> drop public synonym pubdept;
+Synonym dropped.
+
+commit; 으로 마무리
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

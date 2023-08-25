@@ -1,0 +1,52 @@
+1번문제)
+
+1. cd /
+2.mkdir night_os
+3.dir
+4.cd night_os
+---------------------------------------------------------------
+2번문제)
+
+1.테이블 생성문
+create table mem_addr(
+ mem_no number(38) primary key
+ ,mem_name varchar2(20) not null
+ ,mem_phone varchar2(24) not null
+ ,mem_email varchar2(50) not null
+ ,mem_addr01 varchar2(20) not null
+ ,mem_addr02 varchar2(100) not null
+ ,mem_addr03 varchar2(50) not null
+ );
+
+2.시퀀스 생성문
+create sequence mem_no_seq
+ start with 1 
+ increment by 1 
+ nocache; 
+-----------------------------------------------------------------------
+3번문제)
+
+delete from mem_addr where mem_no=4;
+--------------------------------------------------------------------------
+4번문제)
+
+--3번 레코드 이름 수정
+update mem_addr set mem_name='이순신' where mem_no=3;
+
+--3번 레코드 이메일 수정
+update mem_addr set mem_email='leeshin@gmail.com' where mem_no=3;
+-------------------------------------------------------------------------------------
+5번문제)
+
+ --ip주소,게이트웨이 등 네트워크 정보를 알아내는 명령어
+ipconfig
+
+--네트워크 연결 유무를 판단할 때 사용하는 명령어
+ping
+----------------------------------------------------------------------------------
+6번문제)
+
+ipconfig/all
+set user
+hostname
+whoami
