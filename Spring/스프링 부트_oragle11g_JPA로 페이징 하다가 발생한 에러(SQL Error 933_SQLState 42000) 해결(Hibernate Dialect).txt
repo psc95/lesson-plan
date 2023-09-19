@@ -1,0 +1,42 @@
+Spring boot 2.7.4
+java 8
+Gradle 6.8.3
+Oracle 11g
+
+오류 내용
+JPA - ORACLE DB를 연동해 개발 중
+단순한 find all Desc 페이징 쿼리가 조회되지 않고 오류가 났다.
+
+2022-09-28 14:19:53.859 WARN 30108 --- [io-8080-exec-10] o.h.engine.jdbc.spi.SqlExceptionHelper : SQL Error: 933, SQLState: 42000
+2022-09-28 14:19:53.859 ERROR 30108 --- [io-8080-exec-10] o.h.engine.jdbc.spi.SqlExceptionHelper : ORA-00933: SQL 명령어가 올바르게 종료되지 않았습니다
+
+spring.jpa.show-sql=true 설정으로 찍힌 sql을 확인해보니,
+
+select user0_.id as id1_0_,
+       user0_.created_date as created_date2_0_,
+       ...
+  from user_info user0_
+ order by user0_.id desc 
+ fetch first ? rows only
+Oracle 12c부터 제공되는 fetch first n rows only 구문이 사용되었다.
+
+해결
+이는 Hibernate Dialect를 설정하지 않아서 난 오류였다.
+JPA에 사용하는 DBMS를 알려주는 방법이다. 페이징처리는 데이터 베이스 종류에 따라서 사용되는 기법이 다르다. 그러므로 
+JPA내부적으로 이런 처리를 dialect라는 것을 통해서 어떤 db종류와 버전을 사용한다는 것을 알려줘서 각 버전과 db종류별로 다르게 
+만들어지는 페이징 sql문을 jpa를 통해서 해결할 수 있다.
+
+application.properties 파일에 아래 코드를 추가하여 해결했다.
+
+ spring.jpa.database-platform=org.hibernate.dialect.Oracle10gDialect
+
+select *
+  from (select user0_.id as id1_0_,
+          ...
+          from user_info user0_
+         order by user0_.id DESC )
+ where rownum <= ?
+※ 참고 : 11g 버전은 Oracle10gDialect로 설정하면 된다.
+
+## 오라클 18c, 21c 는
+spring.jpa.database-platform=org.hibernate.dialect.Oracle12cDialect
